@@ -10,6 +10,45 @@ npm start
 
 Abrir http://localhost:3000 y crear el primer administrador. No hay cuentas ni datos de demostración. Para verificar el servidor: `npm test` (usa una base en memoria).
 
+Desarrollo con recarga automática: `npm run dev`.
+
+## Estructura del proyecto
+
+```
+├── src/                         Backend (Node.js, CommonJS, sin framework)
+│   ├── server.js                Punto de entrada: crea e inicia el servidor HTTP
+│   ├── app.js                   Manejador principal: contexto, estáticos vs. API, errores
+│   ├── config/
+│   │   ├── env.js               Variables de entorno y rutas de carpetas
+│   │   └── permissions.js       Roles y permisos por módulo (RF-01)
+│   ├── database/
+│   │   ├── schema.sql           Tablas de SQLite
+│   │   ├── connection.js        Conexión única y creación del esquema
+│   │   └── repositories/        Todas las consultas SQL, una por tabla
+│   ├── http/                    Utilidades HTTP: errores, cuerpo JSON, respuestas, estáticos
+│   ├── middleware/              authenticate (sesión) y verify-origin (CSRF)
+│   ├── routes/                  index.js (enrutador), auth, users y records (CRUD de módulos)
+│   ├── services/                Contraseñas/tokens y envío de correo
+│   └── validators/              Reglas de validación de usuarios y registros
+├── public/                      Frontend (ES modules, sin compilación)
+│   ├── index.html
+│   ├── assets/css/style.css
+│   └── js/
+│       ├── main.js              Punto de entrada
+│       ├── core/                api, estado global, permisos, textos y utilidades
+│       ├── ui/                  Componentes: formulario, modal, tabla, avisos
+│       ├── views/               Una vista por pantalla (dashboard, listados, reportes…)
+│       └── reports/             Cálculo de reportes y exportación Excel/PDF
+├── tests/
+│   ├── api.test.js              Pruebas de la API
+│   └── helpers/smtp-server.js   Servidor SMTP falso para las pruebas
+└── data/                        Base SQLite (se crea al iniciar; ignorada por git)
+```
+
+Flujo de una solicitud a la API: `server.js` → `app.js` → `routes/index.js` → (rutas públicas | `middleware` → rutas con sesión) → `validators` → `database/repositories`.
+
+Los permisos existen en dos lugares: `src/config/permissions.js` (los que realmente se aplican) y `public/js/core/permissions.js` (solo ocultan botones). Si cambias uno, cambia el otro.
+
 ## Funciones
 
 - RF-01: correo y contraseña, registro de usuarios por administrador, cinco roles, cierre de sesión y restablecimiento con códigos de un solo uso (30 minutos). Contraseñas con scrypt, sesiones HttpOnly de ocho horas y revocación al restablecer contraseña.
