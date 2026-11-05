@@ -1,4 +1,6 @@
-PRAGMA journal_mode = WAL;
+-- 001: esquema original del proyecto.
+-- Usa IF NOT EXISTS para que las bases creadas antes del sistema de
+-- migraciones la marquen como aplicada sin cambios.
 
 CREATE TABLE IF NOT EXISTS users (
   id    TEXT PRIMARY KEY,
@@ -20,7 +22,7 @@ CREATE TABLE IF NOT EXISTS resets (
   expires INTEGER
 );
 
--- Almacén genérico de los módulos (miembros, eventos, etc.) en JSON.
+-- Almacén genérico en JSON; se reemplaza por tablas reales en 002/003.
 CREATE TABLE IF NOT EXISTS records (
   kind TEXT,
   id   TEXT,

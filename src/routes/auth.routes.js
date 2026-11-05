@@ -6,7 +6,6 @@ const { env } = require("../config/env");
 const { usersRepository } = require("../database/repositories/users.repository");
 const { sessionsRepository } = require("../database/repositories/sessions.repository");
 const { resetsRepository } = require("../database/repositories/resets.repository");
-const { recordsRepository } = require("../database/repositories/records.repository");
 const { fail } = require("../http/errors");
 const {
   sendJson,
@@ -25,15 +24,6 @@ const { validateUser, validateNewPassword } = require("../validators/user.valida
 
 const RESET_TTL_MS = 30 * 60 * 1000;
 
-const DEFAULT_SETTINGS = {
-  id: "church",
-  name: "Mi iglesia",
-  address: "",
-  phone: "",
-  email: "",
-  schedule: "",
-};
-
 /** Indica si falta crear el primer administrador. */
 function status({ res }) {
   sendJson(res, 200, { setup: usersRepository.count() === 0 });
@@ -51,7 +41,6 @@ function setup({ res, body }) {
     role: body.role,
     hash: hashPassword(body.password),
   });
-  recordsRepository.save("settings", { ...DEFAULT_SETTINGS });
   sendJson(res, 201, { ok: true });
 }
 

@@ -11,7 +11,7 @@ const usersRepository = {
 
   create: ({ id, email, name, role, hash }) =>
     db
-      .prepare("INSERT INTO users VALUES(?,?,?,?,?)")
+      .prepare("INSERT INTO users (id, email, name, role, hash) VALUES (?, ?, ?, ?, ?)")
       .run(id, email, name, role, hash),
 
   updatePasswordHash: (userId, hash) =>

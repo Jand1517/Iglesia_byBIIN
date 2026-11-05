@@ -3,7 +3,9 @@ const { db } = require("../connection");
 /** Códigos de recuperación de contraseña (un solo uso). */
 const resetsRepository = {
   create: (token, userId, expires) =>
-    db.prepare("INSERT INTO resets VALUES(?,?,?)").run(token, userId, expires),
+    db
+      .prepare("INSERT INTO resets (token, user_id, expires) VALUES (?, ?, ?)")
+      .run(token, userId, expires),
 
   findValid: (token, now) =>
     db

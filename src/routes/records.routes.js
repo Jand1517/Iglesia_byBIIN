@@ -6,6 +6,9 @@
  *   POST   /api/:module  → crea o actualiza (según `id`)
  *   PUT    /api/:module  → igual que POST
  *   DELETE /api/:module  → solo módulos en DELETABLE_MODULES
+ *
+ * Cada repositorio guarda únicamente las columnas que conoce: los campos
+ * extra que envíe el cliente se ignoran.
  */
 const {
   DELETABLE_MODULES,
@@ -13,7 +16,7 @@ const {
   canRead,
   canWrite,
 } = require("../config/permissions");
-const { recordsRepository } = require("../database/repositories/records.repository");
+const { moduleRepositories } = require("../database/repositories");
 const { fail } = require("../http/errors");
 const { sendJson } = require("../http/response");
 const { newId } = require("../services/password.service");
@@ -29,7 +32,8 @@ function handleRecords(ctx) {
   if (!isModule(kind)) fail(404, "Recurso desconocido");
   if (!canRead(user.role, kind)) fail(403, "Información financiera restringida");
 
-  if (req.method === "GET") return sendJson(res, 200, recordsRepository.list(kind));
+  const repository = moduleRepositories[kind];
+  if (req.method === "GET") return sendJson(res, 200, repository.list());
 
   if (!canWrite(user.role, kind))
     fail(403, "Tu rol no permite modificar este módulo");
@@ -37,13 +41,13 @@ function handleRecords(ctx) {
   if (req.method === "POST" || req.method === "PUT") {
     body.id = body.id || newId();
     validateRecord(kind, body);
-    return sendJson(res, 200, recordsRepository.save(kind, body));
+    return sendJson(res, 200, repository.save(body));
   }
 
   if (req.method === "DELETE") {
     if (!DELETABLE_MODULES.includes(kind))
       fail(405, "Usa desactivación o cancelación para conservar el historial");
-    recordsRepository.remove(kind, body.id);
+    repository.remove(String(body.id));
     return sendJson(res, 200, { ok: true });
   }
 

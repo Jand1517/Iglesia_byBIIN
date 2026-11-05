@@ -2,6 +2,7 @@
  * Manejador HTTP principal: arma el contexto de la solicitud, decide entre
  * archivos estáticos y API, y convierte los errores en respuestas JSON.
  */
+const { fromDatabaseError } = require("./http/errors");
 const { readJsonBody } = require("./http/request");
 const { sendJson } = require("./http/response");
 const { serveStatic } = require("./http/static");
@@ -22,7 +23,8 @@ async function handleRequest(req, res) {
 
     if (!ctx.path.startsWith("/api/")) return serveStatic(res, ctx.path);
     await routeApi(ctx);
-  } catch (error) {
+  } catch (caught) {
+    const error = fromDatabaseError(caught) || caught;
     if (!error.status) console.error(error);
     sendJson(res, error.status || 500, {
       error: error.status ? error.message : "Error interno del servidor",
