@@ -1,6 +1,6 @@
 # Comunidad — administración de iglesia
 
-Aplicación local en español, Node.js 24 o superior. Datos persistentes en SQLite; Nodemailer se utiliza para enviar códigos de recuperación por SMTP.
+Aplicación local en español, Node.js 24 o superior. Datos persistentes en SQLite mediante `better-sqlite3`; Nodemailer se utiliza para enviar códigos de recuperación por SMTP.
 
 ## Ejecutar
 
@@ -12,6 +12,16 @@ Abrir http://localhost:3000 y crear el primer administrador. No hay cuentas ni d
 
 Desarrollo con recarga automática: `npm run dev`.
 
+### Cuenta de administrador para desarrollo
+
+Para no crear el primer administrador a mano en cada computadora del equipo:
+
+```powershell
+npm run db:seed-admin
+```
+
+Crea `admin123@gmail.com` con rol administrador (la contraseña está en `scripts/seed-admin.js`). Si ya existe, no la modifica. Con ella se crean las demás cuentas desde **Usuarios**. Se bloquea con `NODE_ENV=production`: esas credenciales son públicas dentro del repositorio y **nunca deben existir en la base real de la iglesia**.
+
 ## Estructura del proyecto
 
 ```
@@ -22,9 +32,10 @@ Desarrollo con recarga automática: `npm run dev`.
 │   │   ├── env.js               Variables de entorno y rutas de carpetas
 │   │   └── permissions.js       Roles y permisos por módulo (RF-01)
 │   ├── database/
-│   │   ├── schema.sql           Tablas de SQLite
-│   │   ├── connection.js        Conexión única y creación del esquema
-│   │   └── repositories/        Todas las consultas SQL, una por tabla
+│   │   ├── connection.js        Conexión única (better-sqlite3) y llaves foráneas activas
+│   │   ├── migrate.js           Ejecutor de migraciones
+│   │   ├── migrations/          001_, 002_, 003_… se aplican en orden, una sola vez
+│   │   └── repositories/        Todas las consultas SQL, un archivo por módulo
 │   ├── http/                    Utilidades HTTP: errores, cuerpo JSON, respuestas, estáticos
 │   ├── middleware/              authenticate (sesión) y verify-origin (CSRF)
 │   ├── routes/                  index.js (enrutador), auth, users y records (CRUD de módulos)
@@ -40,12 +51,36 @@ Desarrollo con recarga automática: `npm run dev`.
 │       ├── views/               Una vista por pantalla (dashboard, listados, reportes…)
 │       └── reports/             Cálculo de reportes y exportación Excel/PDF
 ├── tests/
-│   ├── api.test.js              Pruebas de la API
-│   └── helpers/smtp-server.js   Servidor SMTP falso para las pruebas
+│   ├── api.test.js              Flujo de usuarios, roles y recuperación
+│   ├── database.test.js         Reglas de la base (fechas, llaves foráneas, centavos…)
+│   ├── migration.test.js        Migración de datos del formato antiguo
+│   └── helpers/                 Cliente HTTP y servidor SMTP falso
 └── data/                        Base SQLite (se crea al iniciar; ignorada por git)
 ```
 
 Flujo de una solicitud a la API: `server.js` → `app.js` → `routes/index.js` → (rutas públicas | `middleware` → rutas con sesión) → `validators` → `database/repositories`.
+
+## Base de datos
+
+SQLite con tablas relacionales:
+
+| Tabla | Contenido |
+|---|---|
+| `users`, `sessions`, `resets` | Usuarios del sistema, sesiones y códigos de recuperación |
+| `members` | Miembros (RF-02) |
+| `ministries` + `ministry_members` | Ministerios e integrantes (RF-05) |
+| `events` | Eventos (RF-04) |
+| `attendance` + `attendance_members` | Listas de asistencia y su padrón con presente/ausente (RF-03) |
+| `donations` | Aportaciones en **centavos** (`amount_cents`); la API usa pesos (RF-06) |
+| `announcements` | Comunicados (RF-07) |
+| `church_settings` | Datos de la iglesia, siempre una sola fila (RF-10) |
+| `legacy_records` | Registros antiguos que no cumplieron las reglas al migrar, para revisión manual |
+
+Reglas en la propia base: llaves foráneas activas (`PRAGMA foreign_keys = ON`), `CHECK` de fechas reales (`AAAA-MM-DD`), horas (`HH:MM`), montos mayores que cero, roles y métodos de pago válidos, y `UNIQUE(event_id, date)` en asistencia. Los validadores de `src/validators` revisan lo mismo antes para dar mensajes claros.
+
+**Migraciones.** Se aplican solas al iniciar y quedan registradas en `schema_migrations`. Para cambiar la estructura: crea `src/database/migrations/NNN_descripcion.sql` con el siguiente número. Nunca edites una migración que ya se compartió.
+
+**Antes de actualizar una base existente**, detén la aplicación y copia la carpeta `data`. Al iniciar, la migración 003 pasa los datos del formato antiguo (tabla `records`) a las tablas nuevas en una transacción.
 
 Los permisos existen en dos lugares: `src/config/permissions.js` (los que realmente se aplican) y `public/js/core/permissions.js` (solo ocultan botones). Si cambias uno, cambia el otro.
 

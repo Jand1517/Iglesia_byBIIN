@@ -2,7 +2,9 @@ const { db } = require("../connection");
 
 const sessionsRepository = {
   create: (token, userId, expires) =>
-    db.prepare("INSERT INTO sessions VALUES(?,?,?)").run(token, userId, expires),
+    db
+      .prepare("INSERT INTO sessions (token, user_id, expires) VALUES (?, ?, ?)")
+      .run(token, userId, expires),
 
   /** Devuelve el usuario dueño de una sesión vigente (sin hash). */
   findActiveUser: (token, now) =>
