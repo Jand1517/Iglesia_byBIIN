@@ -1,6 +1,7 @@
 /** Textos de la interfaz: menú, columnas y presentación de valores. */
 import { state } from "./state.js";
 import { money } from "./utils.js";
+import { eventTypeLabel } from "./event-types.js";
 
 /** Páginas del menú lateral, en orden. */
 export const PAGE_TITLES = {
@@ -27,6 +28,7 @@ export const COLUMNS = {
   ],
   events: [
     ["title", "Evento"],
+    ["type", "Tipo"],
     ["date", "Fecha"],
     ["time", "Hora"],
     ["place", "Lugar"],
@@ -61,6 +63,7 @@ export const COLUMNS = {
     ["name", "Nombre"],
     ["email", "Correo"],
     ["role", "Rol"],
+    ["active", "Estado"],
   ],
 };
 
@@ -72,6 +75,7 @@ export const eventName = (id) =>
 
 /** Valor legible de un campo para tablas y reportes. */
 export function displayValue(row, key) {
+  if (key === "type") return eventTypeLabel(row.type);
   if (key === "active") return row.active === false ? "Inactivo" : "Activo";
   if (key === "important") return row.important ? "Importante" : "Normal";
   if (key === "cancelled") return row.cancelled ? "Cancelado" : "Programado";

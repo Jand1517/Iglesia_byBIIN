@@ -36,8 +36,8 @@ function setup({ res, body }) {
   validateUser(body);
   usersRepository.create({
     id: newId(),
-    email: body.email.toLowerCase(),
-    name: body.name,
+    email: body.email.trim().toLowerCase(),
+    name: body.name.trim(),
     role: body.role,
     hash: hashPassword(body.password),
   });
@@ -45,8 +45,8 @@ function setup({ res, body }) {
 }
 
 function login({ res, body }) {
-  const user = usersRepository.findByEmail(String(body.email).toLowerCase());
-  if (!user || !verifyPassword(String(body.password), user.hash))
+  const user = usersRepository.findByEmail(String(body.email).trim().toLowerCase());
+  if (!user || !user.active || !verifyPassword(String(body.password), user.hash))
     fail(401, "Correo o contraseña incorrectos");
   const token = newToken();
   sessionsRepository.create(
@@ -66,9 +66,9 @@ async function recover({ res, body }) {
   if (!env.devRecovery() && !env.smtpConfigured())
     fail(503, "La recuperación por correo no está configurada.");
 
-  const user = usersRepository.findByEmail(String(body.email).toLowerCase());
+  const user = usersRepository.findByEmail(String(body.email).trim().toLowerCase());
   let token;
-  if (user) {
+  if (user?.active) {
     token = newToken();
     resetsRepository.deleteByUser(user.id);
     resetsRepository.create(token, user.id, Date.now() + RESET_TTL_MS);
@@ -90,7 +90,7 @@ async function recover({ res, body }) {
 /** Cambia la contraseña con un código válido y cierra todas las sesiones. */
 function reset({ res, body }) {
   const pending = resetsRepository.findValid(String(body.token), Date.now());
-  if (!pending) fail(400, "Código inválido o vencido");
+  if (!pending || !usersRepository.findById(pending.user_id)?.active) fail(400, "Código inválido o vencido");
   validateNewPassword(body.password);
   usersRepository.updatePasswordHash(pending.user_id, hashPassword(body.password));
   resetsRepository.deleteByUser(pending.user_id);

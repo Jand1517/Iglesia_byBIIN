@@ -3,7 +3,7 @@
  * RF-02 (estado activo/inactivo), RF-04 (calendario), RF-06 (periodo y total).
  */
 import { api } from "../core/api.js";
-import { $, money } from "../core/utils.js";
+import { $, money, esc } from "../core/utils.js";
 import { state, refresh } from "../core/state.js";
 import { can } from "../core/permissions.js";
 import { PAGE_TITLES, COLUMNS } from "../core/labels.js";
@@ -11,11 +11,12 @@ import { table } from "../ui/table.js";
 import { run } from "../ui/notice.js";
 import { renderCalendar } from "./calendar.view.js";
 import { openRecordForm } from "./record-form.view.js";
+import { EVENT_TYPES } from "../core/event-types.js";
 
 function toolbar(kind) {
   const search = `<input id="search" placeholder="Buscar en ${PAGE_TITLES[kind].toLowerCase()}…" aria-label="Buscar">`;
   const statusFilter =
-    kind === "members"
+    ["members", "users"].includes(kind)
       ? '<select id="active" aria-label="Estado"><option value="all">Todos los estados</option><option value="yes">Activos</option><option value="no">Inactivos</option></select>'
       : "";
   const dateFilter =
@@ -24,7 +25,8 @@ function toolbar(kind) {
       : "";
   const calendarButton =
     kind === "events" ? '<button id="calendar">Ver calendario</button>' : "";
-  return `<div class="toolbar">${search}${statusFilter}${dateFilter}${calendarButton}</div>`;
+  const typeFilter = kind === "events" ? `<select id="eventtype" aria-label="Tipo de evento"><option value="">Todos los tipos</option>${[...EVENT_TYPES, ["sin_clasificar", "Sin clasificar"]].map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join("")}</select>` : "";
+  return `<div class="toolbar">${search}${statusFilter}${dateFilter}${typeFilter}${calendarButton}</div>`;
 }
 
 /** Aplica búsqueda de texto y filtros de la barra de herramientas. */
@@ -37,6 +39,7 @@ function filterRows(kind) {
     rows = rows.filter((r) => (r.active !== false) === ($("#active").value === "yes"));
   if ($("#from")?.value) rows = rows.filter((r) => r.date >= $("#from").value);
   if ($("#to")?.value) rows = rows.filter((r) => r.date <= $("#to").value);
+  if ($("#eventtype")?.value) rows = rows.filter((r) => r.type === $("#eventtype").value);
   return rows;
 }
 
@@ -53,8 +56,10 @@ export function renderListing() {
     $("#rows").innerHTML =
       total +
       table(rows, COLUMNS[kind], {
-        editable: can(kind) && kind !== "users",
-        deletable: kind === "announcements",
+        editable: can(kind),
+        deletable: ["announcements", "users"].includes(kind),
+        userActions: kind === "users",
+        currentUserId: state.me.id,
       });
 
     document.querySelectorAll("[data-edit]").forEach(
@@ -68,20 +73,31 @@ export function renderListing() {
     document.querySelectorAll("[data-delete]").forEach(
       (button) =>
         (button.onclick = () => {
-          if (confirm("¿Eliminar este comunicado?"))
+          if (confirm(kind === "users" ? "¿Eliminar esta cuenta de usuario permanentemente? Sus sesiones también se cerrarán." : "¿Eliminar este comunicado?"))
             run(async () => {
               await api(kind, { id: button.dataset.delete }, "DELETE");
               await refresh();
             });
         }),
     );
+    document.querySelectorAll("[data-toggle]").forEach((button) => {
+      button.onclick = () => {
+        const record = state.data.users.find((r) => r.id === button.dataset.toggle);
+        const active = record.active === false;
+        if (confirm(`¿${active ? "Activar" : "Desactivar"} a ${record.name}?${active ? "" : " Sus sesiones se cerrarán y no podrá iniciar sesión."}`))
+          run(async () => {
+            await api("users", { id: record.id, active }, "PATCH");
+            await refresh();
+          });
+      };
+    });
   };
 
   $("#search").oninput = update;
-  ["active", "from", "to"].forEach((id) => {
+  ["active", "from", "to", "eventtype"].forEach((id) => {
     if ($("#" + id)) $("#" + id).onchange = update;
   });
   if ($("#calendar"))
-    $("#calendar").onclick = () => renderCalendar({ onBack: renderListing });
+    $("#calendar").onclick = () => renderCalendar({ onBack: renderListing, type: $("#eventtype").value });
   update();
 }

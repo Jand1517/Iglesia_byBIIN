@@ -4,17 +4,16 @@ const { fail } = require("../http/errors");
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 const MIN_PASSWORD_LENGTH = 10;
 
-function validateUser(body) {
+function validateUser(body, { editing = false } = {}) {
   if (
-    !body.name?.trim() ||
-    !EMAIL_PATTERN.test(body.email || "") ||
-    !body.password ||
-    body.password.length < MIN_PASSWORD_LENGTH ||
+    typeof body.name !== "string" || !body.name.trim() ||
+    typeof body.email !== "string" || !EMAIL_PATTERN.test(body.email.trim()) ||
+    (!editing && (typeof body.password !== "string" || body.password.length < MIN_PASSWORD_LENGTH)) ||
     !ROLES.includes(body.role)
   )
     fail(
       400,
-      "Nombre, correo válido, rol y contraseña de al menos 10 caracteres requeridos.",
+      editing ? "Nombre, correo válido y rol requeridos." : "Nombre, correo válido, rol y contraseña de al menos 10 caracteres requeridos.",
     );
 }
 
