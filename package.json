@@ -3,13 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.js",
-    "test": "node --test test.js"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test \"tests/**/*.test.js\""
   },
   "dependencies": {
     "nodemailer": "^10.3.1"
   },
   "engines": {
     "node": ">=24"
-  }
+  },
+  "main": "src/server.js"
 }
