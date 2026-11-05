@@ -1,11 +1,12 @@
 /** RF-04: calendario mensual de eventos. */
 import { $, esc } from "../core/utils.js";
 import { state } from "../core/state.js";
+import { eventTypeLabel } from "../core/event-types.js";
 
 const WEEK_DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 /** @param {{ onBack: () => void }} options  Acción del botón "Volver". */
-export function renderCalendar({ onBack }) {
+export function renderCalendar({ onBack, type = "" }) {
   const { month } = state;
   const [year, monthNumber] = month.split("-").map(Number);
   const firstWeekDay = new Date(year, monthNumber - 1, 1).getDay();
@@ -14,10 +15,10 @@ export function renderCalendar({ onBack }) {
   const days = Array.from({ length: daysInMonth }, (_, i) => {
     const date = month + "-" + String(i + 1).padStart(2, "0");
     const events = state.data.events
-      .filter((e) => e.date === date)
+      .filter((e) => e.date === date && (!type || e.type === type))
       .map(
         (e) =>
-          `<small>${esc(e.time)} ${esc(e.title)}${e.cancelled ? " · Cancelado" : ""}</small>`,
+          `<small>${esc(e.time)} ${esc(e.title)} · ${esc(eventTypeLabel(e.type))}${e.cancelled ? " · Cancelado" : ""}</small>`,
       )
       .join("");
     return `<div class="day">${i + 1}${events}</div>`;
@@ -30,7 +31,7 @@ export function renderCalendar({ onBack }) {
   $("#month").onchange = (e) => {
     if (e.target.value) {
       state.month = e.target.value;
-      renderCalendar({ onBack });
+      renderCalendar({ onBack, type });
     }
   };
   $("#list").onclick = onBack;

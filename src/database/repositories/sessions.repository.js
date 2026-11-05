@@ -10,7 +10,7 @@ const sessionsRepository = {
   findActiveUser: (token, now) =>
     db
       .prepare(
-        "SELECT u.id,u.name,u.email,u.role FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>?",
+        "SELECT u.id,u.name,u.email,u.role FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>? AND u.active=1",
       )
       .get(token, now),
 

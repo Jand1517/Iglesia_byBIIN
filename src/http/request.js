@@ -1,7 +1,7 @@
 const { fail } = require("./errors");
 
 const MAX_BODY_LENGTH = 2_000_000;
-const METHODS_WITH_BODY = ["POST", "PUT", "DELETE"];
+const METHODS_WITH_BODY = ["POST", "PUT", "PATCH", "DELETE"];
 
 /** Lee y parsea el cuerpo JSON; devuelve `{}` si el método no lleva cuerpo. */
 async function readJsonBody(req) {

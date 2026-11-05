@@ -43,6 +43,7 @@ test("migra los datos antiguos sin perder información", () => {
     "001_initial.sql",
     "002_relational_schema.sql",
     "003_migrate_legacy_records.sql",
+    "004_user_status_event_type.sql",
   ]);
 
   const all = (sql) => db.prepare(sql).all();
@@ -50,6 +51,8 @@ test("migra los datos antiguos sin perder información", () => {
 
   // Usuarios: correo normalizado.
   assert.equal(one("SELECT email FROM users").email, "admin@example.org");
+  assert.equal(one("SELECT active FROM users").active, 1);
+  assert.equal(one("SELECT type FROM events WHERE id='e1'").type, "sin_clasificar");
 
   // Miembros: correo inválido → NULL; estado conservado.
   assert.deepEqual(all("SELECT id, email, active FROM members ORDER BY id"), [

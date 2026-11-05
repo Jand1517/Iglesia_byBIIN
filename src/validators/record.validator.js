@@ -72,6 +72,12 @@ const moduleRules = {
   },
 
   events(body) {
+    if (body.type === undefined) {
+      // Compatibilidad con clientes anteriores. Los eventos antiguos requieren clasificación.
+      body.type = (body.id && eventsRepository.findById(body.id)?.type) || 'sin_clasificar';
+    }
+    if (!["religioso", "administrativo", "sin_clasificar"].includes(body.type))
+      fail(400, "Tipo de evento inválido");
     requireDate(body.date, "fecha");
     if (!isTime(body.time)) fail(400, "La hora no es válida (usa HH:MM)");
     optionalReference(body.responsible, membersRepository.exists, "Responsable inválido");

@@ -50,6 +50,7 @@ export async function loadData() {
 
 /** Recarga los datos y redibuja la pantalla actual. */
 export async function refresh() {
+  state.me = await api("me");
   await loadData();
   rerender();
 }

@@ -7,7 +7,7 @@ import { displayValue } from "../core/labels.js";
  * @param {Array<[string,string]>} columns
  * @param {{ editable?: boolean, deletable?: boolean }} options
  */
-export function table(rows, columns, { editable = false, deletable = false } = {}) {
+export function table(rows, columns, { editable = false, deletable = false, userActions = false, currentUserId } = {}) {
   const head = columns.map((c) => `<th>${esc(c[1])}</th>`).join("");
   const body = rows
     .map((r) => {
@@ -15,7 +15,7 @@ export function table(rows, columns, { editable = false, deletable = false } = {
         .map((c) => `<td>${esc(displayValue(r, c[0]))}</td>`)
         .join("");
       const actions = editable
-        ? `<td><button data-edit="${esc(r.id)}">Editar</button>${deletable ? ` <button data-delete="${esc(r.id)}">Eliminar</button>` : ""}</td>`
+        ? `<td><div class="row-actions"><button data-edit="${esc(r.id)}">Editar</button>${userActions && r.id !== currentUserId ? ` <button data-toggle="${esc(r.id)}">${r.active === false ? "Activar" : "Desactivar"}</button>` : ""}${deletable && (!userActions || r.id !== currentUserId) ? ` <button data-delete="${esc(r.id)}">Eliminar</button>` : ""}</div></td>`
         : "";
       return `<tr>${cells}${actions}</tr>`;
     })

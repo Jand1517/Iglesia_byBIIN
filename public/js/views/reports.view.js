@@ -12,6 +12,7 @@ import {
   MINISTRY_GROUPED_COLUMNS,
 } from "../reports/ministry-report.js";
 import { exportExcel, exportPdf } from "../reports/export.js";
+import { run } from "../ui/notice.js";
 
 const reportTypes = () => [
   ["members", "General de miembros"],
@@ -30,7 +31,7 @@ function buildRecordReport(kind, from, to, period) {
     const columns = COLUMNS[kind];
     return {
       columns,
-      rows: rows.map((row) => columns.map((c) => displayValue(row, c[0]))),
+      rows: rows.map((row) => columns.map((c) => c[0] === "amount" ? Number(row.amount) : displayValue(row, c[0]))),
     };
   }
 
@@ -43,15 +44,15 @@ function buildRecordReport(kind, from, to, period) {
   return {
     columns: [
       ["period", "Periodo"],
-      ["total", isMoney ? "Ingresos MXN" : "Presencias"],
+      [isMoney ? "amount" : "total", isMoney ? "Ingresos MXN" : "Presencias"],
     ],
     rows: [...totals.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, total]) => [date, isMoney ? money(total) : total]),
+      .map(([date, total]) => [date, isMoney ? Math.round(total * 100) / 100 : total]),
   };
 }
 
-function buildReport(kind, from, to, period) {
+export function buildReport(kind, from, to, period) {
   if (kind === "ministries")
     return {
       columns: period === "detail" ? MINISTRY_DETAIL_COLUMNS : MINISTRY_GROUPED_COLUMNS,
@@ -61,14 +62,14 @@ function buildReport(kind, from, to, period) {
 }
 
 const reportTable = (title, report, from, to) =>
-  `<div class="panel"><h2>${title}</h2><p class="muted">${report.rows.length} registros · ${esc(from || "Inicio")} a ${esc(to || "la fecha")}</p><div class="tablewrap"><table><thead><tr>${report.columns.map((c) => `<th>${esc(c[1])}</th>`).join("")}</tr></thead><tbody>${report.rows.map((row) => `<tr>${row.map((v) => `<td>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>${report.rows.length ? "" : '<div class="empty">No hay datos para el periodo seleccionado.</div>'}</div></div>`;
+  `<div class="panel"><h2>${esc(title)}</h2><p class="muted">${report.rows.length} registros · ${esc(from || "Inicio")} a ${esc(to || "la fecha")}</p><div class="tablewrap"><table><thead><tr>${report.columns.map((c) => `<th>${esc(c[1])}</th>`).join("")}</tr></thead><tbody>${report.rows.map((row) => `<tr>${row.map((v, i) => `<td>${esc(report.columns[i][0] === "amount" ? money(v) : v)}</td>`).join("")}</tr>`).join("")}</tbody></table>${report.rows.length ? "" : '<div class="empty">No hay datos para el periodo seleccionado.</div>'}</div></div>`;
 
 export function renderReports() {
   const types = reportTypes();
   let current = { columns: [], rows: [] };
 
   $("#content").innerHTML =
-    `<div class="toolbar"><select id="reporttype" aria-label="Reporte">${types.map(([k, n]) => `<option value="${k}">${n}</option>`).join("")}</select><label>Desde<input id="from" type="date"></label><label>Hasta<input id="to" type="date"></label><select id="period" aria-label="Agrupación"><option value="detail">Detalle</option><option value="week">Semanal</option><option value="month">Mensual</option></select><button id="excel">Exportar Excel (.xls)</button><button id="pdf">Imprimir / PDF</button></div>` +
+    `<div class="toolbar"><select id="reporttype" aria-label="Reporte">${types.map(([k, n]) => `<option value="${k}">${n}</option>`).join("")}</select><label>Desde<input id="from" type="date"></label><label>Hasta<input id="to" type="date"></label><select id="period" aria-label="Agrupación"><option value="detail">Detalle</option><option value="week">Semanal</option><option value="month">Mensual</option></select><button id="excel">Exportar Excel (.xlsx)</button><button id="pdf">Imprimir / PDF</button></div>` +
     `<h2 class="report-title">${esc(state.data.settings[0]?.name)} · Reporte</h2><div id="report"></div>`;
 
   const update = () => {
@@ -91,6 +92,22 @@ export function renderReports() {
 
   ["reporttype", "from", "to", "period"].forEach((id) => ($("#" + id).onchange = update));
   $("#pdf").onclick = exportPdf;
-  $("#excel").onclick = () => exportExcel(current.columns, current.rows);
+  $("#excel").onclick = () => {
+    const button = $("#excel");
+    const options = {
+      church: state.data.settings[0]?.name || "Mi iglesia",
+      title: types.find(([key]) => key === $("#reporttype").value)[1],
+      kind: $("#reporttype").value,
+      from: $("#from").value,
+      to: $("#to").value,
+      grouping: $("#period").selectedOptions[0].textContent,
+    };
+    run(async () => {
+      button.disabled = true;
+      button.textContent = "Generando Excel…";
+      try { await exportExcel(current.columns, current.rows, options); }
+      finally { button.disabled = false; button.textContent = "Exportar Excel (.xlsx)"; }
+    });
+  };
   update();
 }

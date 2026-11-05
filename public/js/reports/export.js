@@ -1,25 +1,37 @@
-/** RF-09: exportación de reportes (Excel XML 2003 y PDF por impresión). */
-import { esc, today } from "../core/utils.js";
+/** RF-09: exportación XLSX nativa y PDF por impresión. */
+import { today } from "../core/utils.js";
+import { buildExcelWorkbook } from "./excel-workbook.js";
 
-/** Descarga un archivo .xls (formato XML Spreadsheet 2003). */
-export function exportExcel(columns, rows) {
-  const cell = (value) =>
-    '<Cell><Data ss:Type="String">' + esc(String(value ?? "")) + "</Data></Cell>";
-  const xml =
-    '<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Reporte"><Table>' +
-    [columns.map((column) => column[1]), ...rows]
-      .map((row) => "<Row>" + row.map(cell).join("") + "</Row>")
-      .join("") +
-    "</Table></Worksheet></Workbook>";
+let libraryPromise;
+function loadExcelJS() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if (!libraryPromise) libraryPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "/vendor/exceljs.min.js";
+    script.onload = () => resolve(window.ExcelJS);
+    script.onerror = () => {
+      script.remove();
+      libraryPromise = null;
+      reject(Error("No se pudo cargar el exportador de Excel. Intenta de nuevo."));
+    };
+    document.head.append(script);
+  });
+  return libraryPromise;
+}
 
+export async function exportExcel(columns, rows, options = {}) {
+  const ExcelJS = await loadExcelJS();
+  const workbook = buildExcelWorkbook(ExcelJS, columns, rows, options);
+  const buffer = await workbook.xlsx.writeBuffer();
   const link = document.createElement("a");
-  link.href = URL.createObjectURL(
-    new Blob([xml], { type: "application/vnd.ms-excel" }),
-  );
-  link.download = "reporte-" + today() + ".xls";
+  link.href = URL.createObjectURL(new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  }));
+  link.download = "reporte-" + (options.kind || "general") + "-" + today() + ".xlsx";
+  document.body.append(link);
   link.click();
+  link.remove();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
-/** Abre el diálogo de impresión (el usuario elige "Guardar como PDF"). */
 export const exportPdf = () => window.print();

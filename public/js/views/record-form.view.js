@@ -6,6 +6,7 @@ import { api } from "../core/api.js";
 import { esc, today } from "../core/utils.js";
 import { state } from "../core/state.js";
 import { ROLES } from "../core/permissions.js";
+import { EVENT_TYPES } from "../core/event-types.js";
 import { field } from "../ui/form.js";
 import { showModal } from "../ui/modal.js";
 
@@ -38,6 +39,11 @@ const formBuilders = {
 
   events: (r) =>
     field("title", "Título", "text", r.title) +
+    field("type", "Tipo de evento", "select", r.type || "", true, [
+      ["", "Selecciona un tipo"],
+      ...(r.type === "sin_clasificar" ? [["sin_clasificar", "Sin clasificar (registro anterior)"]] : []),
+      ...EVENT_TYPES,
+    ]) +
     field("date", "Fecha", "date", r.date || today()) +
     field("time", "Hora", "time", r.time) +
     field("place", "Lugar", "text", r.place) +
@@ -93,11 +99,13 @@ const formBuilders = {
     field("date", "Fecha de publicación", "date", r.date || today()) +
     `<label class="checkbox-field"><input type="checkbox" name="important" ${r.important ? "checked" : ""}>Aviso importante</label>`,
 
-  users: () =>
-    field("name", "Nombre", "text") +
-    field("email", "Correo", "email") +
-    field("password", "Contraseña inicial", "password") +
-    field("role", "Rol", "select", "secretario", true, ROLES.map((x) => [x, x])),
+  users: (r) =>
+    field("name", "Nombre", "text", r.name) +
+    field("email", "Correo", "email", r.email) +
+    (r.id ? "" : field("password", "Contraseña inicial", "password")) +
+    (r.id === state.me.id
+      ? `<p>Rol: administrador. Tu propia cuenta debe conservar este rol.</p><input type="hidden" name="role" value="administrador">`
+      : field("role", "Rol", "select", r.role || "secretario", true, ROLES.map((x) => [x, x]))),
 
   attendance: (r) =>
     field(
@@ -134,6 +142,6 @@ export function openRecordForm(kind, record = {}) {
   showModal(
     record.id ? "Editar registro" : "Nuevo registro",
     formBuilders[kind]?.(record) ?? "",
-    (form) => api(kind, toPayload(kind, record, form)),
+    (form) => api(kind, toPayload(kind, record, form), kind === "users" && record.id ? "PUT" : "POST"),
   );
 }

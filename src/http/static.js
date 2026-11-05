@@ -18,6 +18,9 @@ const SECURITY_HEADERS = {
 
 /** Resuelve la ruta pedida dentro de PUBLIC_DIR; impide salir de la carpeta. */
 function resolvePublicFile(pathname) {
+  // Solo se expone este bundle, nunca node_modules completo.
+  if (pathname === "/vendor/exceljs.min.js")
+    return { file: require.resolve("exceljs/dist/exceljs.min.js"), type: CONTENT_TYPES[".js"] };
   const relative = pathname === "/" ? "index.html" : pathname.slice(1);
   const file = path.resolve(PUBLIC_DIR, relative);
   if (!file.startsWith(PUBLIC_DIR + path.sep)) return null;

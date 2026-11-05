@@ -10,12 +10,13 @@ const {
 } = require("./helpers");
 
 const COLUMNS =
-  "id, title, date, time, place, description, responsible_id, ministry_id, cancelled";
+  "id, title, date, time, place, description, responsible_id, ministry_id, cancelled, type";
 
 const toApi = (row) =>
   row && {
     id: row.id,
     title: row.title,
+    type: row.type,
     date: row.date,
     time: row.time,
     place: row.place,
@@ -32,9 +33,9 @@ const statements = {
   upsert: db.prepare(`
     INSERT INTO events (${COLUMNS})
     VALUES (@id, @title, @date, @time, @place, @description,
-            @responsible_id, @ministry_id, @cancelled)
+            @responsible_id, @ministry_id, @cancelled, @type)
     ON CONFLICT (id) DO UPDATE SET
-      title = excluded.title, date = excluded.date, time = excluded.time,
+      title = excluded.title, type = excluded.type, date = excluded.date, time = excluded.time,
       place = excluded.place, description = excluded.description,
       responsible_id = excluded.responsible_id, ministry_id = excluded.ministry_id,
       cancelled = excluded.cancelled, updated_at = ${NOW_SQL}`),
@@ -49,6 +50,7 @@ const eventsRepository = {
     statements.upsert.run({
       id: body.id,
       title: requiredText(body.title),
+      type: body.type ?? 'sin_clasificar',
       date: body.date,
       time: body.time,
       place: requiredText(body.place),
