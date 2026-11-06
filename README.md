@@ -21,6 +21,16 @@ npm start
 
 Abre **http://localhost:3000**. La primera vez el sistema pide crear la cuenta del administrador; desde ella se crean las demás cuentas en **Usuarios**.
 
+> **Si `npm install` muestra `npm warn install-scripts … better-sqlite3`**, aprueba el script de instalación de la base de datos y vuelve a iniciar:
+>
+> ```powershell
+> npm install-scripts approve better-sqlite3
+> npm start
+> ```
+>
+> Los avisos `npm warn deprecated` y «2 moderate severity vulnerabilities» son conocidos y no impiden usar el sistema; **no ejecutes `npm audit fix --force`** (rompe la exportación a Excel). Más detalles en la [guía de desarrollo](docs/DESARROLLO.md#13-solución-de-problemas-de-instalación).
+>
+
 Para desarrollo hay una cuenta de pruebas: `npm run db:seed-admin` (ver la [guía de desarrollo](docs/DESARROLLO.md#cuenta-de-administrador-para-desarrollo)).
 
 ## Funciones principales
