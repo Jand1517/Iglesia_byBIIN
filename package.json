@@ -16,5 +16,8 @@
   "engines": {
     "node": ">=24"
   },
-  "main": "src/server.js"
+  "main": "src/server.js",
+  "allowScripts": {
+    "better-sqlite3@12.11.1": true
+  }
 }

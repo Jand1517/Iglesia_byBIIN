@@ -289,7 +289,24 @@ npm start
 
 **`EBUSY` o `EPERM`.** Cierra las ventanas del proyecto (y cualquier proceso de Node), vuelve a abrir VS Code y reintenta.
 
-**Avisos `npm warn deprecated`.** No son los que detienen la instalación.
+**Avisos `npm warn deprecated`** (`inflight`, `glob`, `rimraf`, `fstream`, `uuid`, `lodash.isequal`, `prebuild-install`). Son dependencias internas de `exceljs` y `better-sqlite3` que sus autores dejaron de mantener. No detienen la instalación ni afectan el funcionamiento.
+
+**«2 moderate severity vulnerabilities».** Vienen de `uuid` dentro de `exceljs` (ver [limitaciones conocidas](#12-limitaciones-conocidas)). **No ejecutes `npm audit fix --force`**: instalaría `exceljs` 3.4.0, una versión anterior incompatible, y rompería la exportación a Excel.
+
+**`npm warn install-scripts … better-sqlite3`.** npm 11 bloquea por defecto los scripts de instalación de las dependencias. `better-sqlite3` necesita el suyo para descargar su parte compilada (`better_sqlite3.node`); sin ella el servidor no arranca. Por eso `package.json` lo aprueba en `allowScripts`, fijado a la versión exacta. Si actualizas `better-sqlite3`, revisa y aprueba la nueva versión:
+
+```powershell
+npm install-scripts ls
+npm install-scripts approve better-sqlite3
+```
+
+Si el servidor dice `Could not locate the bindings file`, la parte compilada no se instaló: borra `node_modules` y ejecuta `npm install` de nuevo.
+
+**`EADDRINUSE` / «El puerto 3000 ya está en uso».** Ya hay una copia del sistema corriendo (por ejemplo en otra terminal de VS Code o en otra carpeta del proyecto). Ciérrala con `Ctrl + C` en su terminal o usa otro puerto: `$env:PORT=3001; npm start`. Para ver qué programa ocupa el puerto en PowerShell:
+
+```powershell
+Get-NetTCPConnection -LocalPort 3000 -State Listen | Select-Object OwningProcess
+```
 
 **«No se pudo cargar el exportador de Excel».** Falta `exceljs`: ejecuta `npm install` y reinicia el servidor.
 
