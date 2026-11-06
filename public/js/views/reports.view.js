@@ -13,20 +13,84 @@ import {
 } from "../reports/ministry-report.js";
 import { exportExcel, exportPdf } from "../reports/export.js";
 import { run } from "../ui/notice.js";
+import { eventTypeLabel } from "../core/event-types.js";
+import { attendanceByEvent, memberAttendanceHistory } from "../core/stats.js";
 
 const reportTypes = () => [
   ["members", "General de miembros"],
   ["attendance", "Asistencia por evento"],
+  ["memberAttendance", "Asistencia por miembro"],
   ["ministries", "Participación por ministerio"],
   ...(financial() ? [["donations", "Ingresos por periodo"]] : []),
 ];
 
-/** Reporte de miembros, asistencia o ingresos (detalle o agrupado). */
+const ATTENDANCE_COLUMNS = [
+  ["event", "Evento"],
+  ["type", "Tipo"],
+  ["sessions", "Listas"],
+  ["presences", "Presencias"],
+  ["absences", "Ausencias"],
+  ["rate", "% asistencia"],
+];
+
+/** RF-09: asistencia agrupada por evento (y por semana o mes si se elige). */
+function buildAttendanceReport(from, to, period) {
+  const events = new Map(state.data.events.map((e) => [e.id, e]));
+  const rows = attendanceByEvent(from, to, period)
+    .map((g) => {
+      const event = events.get(g.eventId);
+      const values = [
+        event?.title || "Evento",
+        eventTypeLabel(event?.type),
+        g.sessions,
+        g.presences,
+        g.absences,
+        g.rate,
+      ];
+      return period === "detail" ? values : [g.period, ...values];
+    })
+    .sort((a, b) => String(a[0]).localeCompare(String(b[0])) || String(a[1]).localeCompare(String(b[1])));
+  return {
+    columns: period === "detail" ? ATTENDANCE_COLUMNS : [["period", "Periodo"], ...ATTENDANCE_COLUMNS],
+    rows,
+  };
+}
+
+/** RF-03 / RF-09: participación de cada miembro en el periodo. */
+function buildMemberAttendanceReport(from, to) {
+  const rows = state.data.members
+    .map((m) => ({ member: m, history: memberAttendanceHistory(m.id, from, to) }))
+    .filter(({ member, history }) => history.summoned || member.active !== false)
+    .sort((a, b) => a.member.name.localeCompare(b.member.name))
+    .map(({ member, history }) => [
+      member.name,
+      member.active === false ? "Inactivo" : "Activo",
+      history.summoned,
+      history.attended,
+      history.absent,
+      history.rate,
+      history.lastAttended || "—",
+    ]);
+  return {
+    columns: [
+      ["name", "Miembro"],
+      ["active", "Estado"],
+      ["summoned", "Convocado"],
+      ["presences", "Asistencias"],
+      ["absences", "Ausencias"],
+      ["rate", "% asistencia"],
+      ["lastAttended", "Última asistencia"],
+    ],
+    rows,
+  };
+}
+
+/** Reporte de miembros o ingresos (detalle o agrupado). */
 function buildRecordReport(kind, from, to, period) {
   const dateField = kind === "members" ? "joined" : "date";
   const rows = state.data[kind].filter((row) => isWithinRange(row[dateField], from, to));
 
-  const grouped = ["attendance", "donations"].includes(kind) && period !== "detail";
+  const grouped = kind === "donations" && period !== "detail";
   if (!grouped) {
     const columns = COLUMNS[kind];
     return {
@@ -35,24 +99,26 @@ function buildRecordReport(kind, from, to, period) {
     };
   }
 
-  const isMoney = kind === "donations";
+  // Ingresos agrupados por semana o mes, sumando en centavos.
   const totals = new Map();
   rows.forEach((row) => {
     const key = reportPeriod(row.date, period);
-    totals.set(key, (totals.get(key) || 0) + (isMoney ? Number(row.amount) : row.present.length));
+    totals.set(key, (totals.get(key) || 0) + Math.round(Number(row.amount) * 100));
   });
   return {
     columns: [
       ["period", "Periodo"],
-      [isMoney ? "amount" : "total", isMoney ? "Ingresos MXN" : "Presencias"],
+      ["amount", "Ingresos MXN"],
     ],
     rows: [...totals.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, total]) => [date, isMoney ? Math.round(total * 100) / 100 : total]),
+      .map(([date, cents]) => [date, cents / 100]),
   };
 }
 
 export function buildReport(kind, from, to, period) {
+  if (kind === "attendance") return buildAttendanceReport(from, to, period);
+  if (kind === "memberAttendance") return buildMemberAttendanceReport(from, to);
   if (kind === "ministries")
     return {
       columns: period === "detail" ? MINISTRY_DETAIL_COLUMNS : MINISTRY_GROUPED_COLUMNS,
@@ -62,7 +128,7 @@ export function buildReport(kind, from, to, period) {
 }
 
 const reportTable = (title, report, from, to) =>
-  `<div class="panel"><h2>${esc(title)}</h2><p class="muted">${report.rows.length} registros · ${esc(from || "Inicio")} a ${esc(to || "la fecha")}</p><div class="tablewrap"><table><thead><tr>${report.columns.map((c) => `<th>${esc(c[1])}</th>`).join("")}</tr></thead><tbody>${report.rows.map((row) => `<tr>${row.map((v, i) => `<td>${esc(report.columns[i][0] === "amount" ? money(v) : v)}</td>`).join("")}</tr>`).join("")}</tbody></table>${report.rows.length ? "" : '<div class="empty">No hay datos para el periodo seleccionado.</div>'}</div></div>`;
+  `<div class="panel"><h2>${esc(title)}</h2><p class="muted">${report.rows.length} registros · ${esc(from || "Inicio")} a ${esc(to || "la fecha")}</p><div class="tablewrap"><table><thead><tr>${report.columns.map((c) => `<th>${esc(c[1])}</th>`).join("")}</tr></thead><tbody>${report.rows.map((row) => `<tr>${row.map((v, i) => `<td>${esc(report.columns[i][0] === "amount" ? money(v) : report.columns[i][0] === "rate" ? v + " %" : v)}</td>`).join("")}</tr>`).join("")}</tbody></table>${report.rows.length ? "" : '<div class="empty">No hay datos para el periodo seleccionado.</div>'}</div></div>`;
 
 export function renderReports() {
   const types = reportTypes();

@@ -48,7 +48,14 @@ const formBuilders = {
     field("time", "Hora", "time", r.time) +
     field("place", "Lugar", "text", r.place) +
     field("description", "Descripción", "textarea", r.description, false) +
-    field("responsible", "Responsable", "select", r.responsible, false, memberOptions()) +
+    "<label>Responsables</label>" +
+    checkboxList(
+      "responsibles",
+      state.data.members.filter(
+        (m) => m.active !== false || (r.responsibles || []).includes(m.id),
+      ),
+      (id) => (r.responsibles || []).includes(id),
+    ) +
     field("ministry", "Ministerio relacionado", "select", r.ministry, false, [
       ["", "Ninguno"],
       ...state.data.ministries.map((m) => [m.id, m.name]),
@@ -58,23 +65,12 @@ const formBuilders = {
       ["true", "Cancelado"],
     ]),
 
-  ministries: (r) => {
-    const activities = r.id
-      ? `<p>Actividades: ${esc(
-          state.data.events
-            .filter((e) => e.ministry === r.id)
-            .map((e) => e.date + " " + e.title)
-            .join(" · ") || "Sin actividades programadas",
-        )}</p>`
-      : "";
-    return (
-      field("name", "Nombre del ministerio", "text", r.name) +
-      field("coordinator", "Coordinador", "select", r.coordinator, true, memberOptions()) +
-      "<label>Integrantes</label>" +
-      checkboxList("members", state.data.members, (id) => (r.members || []).includes(id)) +
-      activities
-    );
-  },
+  // Las actividades del ministerio se consultan en su vista de detalle (RF-05).
+  ministries: (r) =>
+    field("name", "Nombre del ministerio", "text", r.name) +
+    field("coordinator", "Coordinador", "select", r.coordinator, true, memberOptions()) +
+    "<label>Integrantes</label>" +
+    checkboxList("members", state.data.members, (id) => (r.members || []).includes(id)),
 
   donations: (r) =>
     field("date", "Fecha", "date", r.date || today()) +
@@ -96,7 +92,8 @@ const formBuilders = {
   announcements: (r) =>
     field("title", "Título", "text", r.title) +
     field("body", "Mensaje", "textarea", r.body) +
-    field("date", "Fecha de publicación", "date", r.date || today()) +
+    field("date", "Fecha de publicación (se muestra desde este día)", "date", r.date || today()) +
+    field("expires", "Vigente hasta (opcional)", "date", r.expires, false) +
     `<label class="checkbox-field"><input type="checkbox" name="important" ${r.important ? "checked" : ""}>Aviso importante</label>`,
 
   users: (r) =>
@@ -131,7 +128,11 @@ const formBuilders = {
 function toPayload(kind, record, form) {
   const body = { ...record, ...Object.fromEntries(form) };
   if (kind === "members") body.active = body.active === "true";
-  if (kind === "events") body.cancelled = body.cancelled === "true";
+  if (kind === "events") {
+    body.cancelled = body.cancelled === "true";
+    body.responsibles = form.getAll("responsibles");
+    delete body.responsible; // campo anterior a la migración 005
+  }
   if (kind === "announcements") body.important = form.get("important") === "on";
   if (kind === "ministries") body.members = form.getAll("members");
   if (kind === "attendance") body.present = form.getAll("present");

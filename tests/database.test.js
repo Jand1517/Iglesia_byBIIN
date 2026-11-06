@@ -22,7 +22,7 @@ before(async () => {
   ana = (await req("members", { name: "Ana", joined: "2026-01-10", active: true })).body;
   luis = (await req("members", { name: "Luis", joined: "2026-02-10", active: true })).body;
   culto = (
-    await req("events", { title: "Culto", date: "2026-11-08", time: "10:00", place: "Templo" })
+    await req("events", { title: "Culto", type: "religioso", date: "2026-11-08", time: "10:00", place: "Templo" })
   ).body;
 });
 

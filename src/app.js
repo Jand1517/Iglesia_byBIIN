@@ -26,6 +26,7 @@ async function handleRequest(req, res) {
   } catch (caught) {
     const error = fromDatabaseError(caught) || caught;
     if (!error.status) console.error(error);
+    if (error.retryAfterSeconds) res.setHeader("Retry-After", String(error.retryAfterSeconds));
     sendJson(res, error.status || 500, {
       error: error.status ? error.message : "Error interno del servidor",
     });

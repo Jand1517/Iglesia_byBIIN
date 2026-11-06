@@ -60,6 +60,7 @@ test("Usuarios, roles, registros, asistencia y recuperación", async () => {
     const event = (
       await req("events", {
         title: "Culto",
+        type: "religioso",
         date: "2026-11-08",
         time: "10:00",
         place: "Templo",

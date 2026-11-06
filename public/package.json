@@ -1,0 +1,4 @@
+{
+  "//": "Indica a Node (pruebas) que el frontend usa ES modules. El servidor no expone .json.",
+  "type": "module"
+}

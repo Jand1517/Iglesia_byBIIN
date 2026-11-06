@@ -129,14 +129,23 @@ small,
   padding: 0 48px 45px;
   max-width: 1600px;
   width: 100%;
-  margin: auto;
+  /* Solo centrado horizontal: con "auto" en vertical, el grid bajaba todo el
+     contenido en las páginas con poco contenido. */
+  margin: 0 auto;
 }
 .topbar {
   padding: 25px 0;
   border-bottom: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 16px;
   margin-bottom: 38px;
+}
+.church-name {
+  font-weight: 700;
+  font-size: 23px; /* 15px del texto base + 8px */
+  line-height: 1.2;
 }
 .heading {
   display: flex;
@@ -168,7 +177,7 @@ small,
 }
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 18px;
   margin: 25px 0;
 }
@@ -392,7 +401,7 @@ label {
     padding: 0 22px 30px;
   }
   .stats {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
   .layout {
     grid-template-columns: 200px 1fr;
@@ -480,4 +489,141 @@ label {
   flex-wrap: wrap;
   gap: 0.4rem;
   min-width: 180px;
+}
+
+/* --- RF-08 · Indicador de dinero: cifras largas en menos espacio ---------- */
+.stat-money strong {
+  font-size: clamp(20px, 1.9vw, 28px);
+  margin-top: 22px;
+  overflow-wrap: anywhere;
+}
+
+/* --- RF-08 · Gráficas SVG ------------------------------------------------ */
+.chart {
+  position: relative;
+}
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.chart-caption {
+  margin: -6px 0 10px;
+  font-size: 13px;
+}
+.chart-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.chart-axis {
+  fill: var(--muted);
+  font-size: 11px;
+}
+.chart-label {
+  fill: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  /* Halo del color de la tarjeta para que la etiqueta no choque con la línea. */
+  paint-order: stroke;
+  stroke: #fffdfb;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.chart-line {
+  fill: none;
+  stroke: var(--rust);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-dot {
+  fill: var(--rust);
+  stroke: #fffdfb; /* anillo del color de la tarjeta */
+  stroke-width: 2;
+}
+.chart-bar {
+  fill: var(--rust);
+}
+.chart-hit {
+  fill: transparent;
+  cursor: crosshair;
+}
+.chart-hit.is-active {
+  fill: rgba(183, 97, 62, 0.08);
+}
+.chart-tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--ink);
+  color: white;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* --- RF-03 / RF-05 · Vistas de detalle ------------------------------------ */
+.details {
+  max-height: 65vh;
+  overflow: auto;
+}
+.details h3 {
+  margin: 22px 0 8px;
+  font-size: 15px;
+}
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.mini-stat {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.mini-stat small {
+  color: var(--muted);
+}
+.mini-stat strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+}
+.plain-list {
+  columns: 2;
+  margin: 0;
+  padding-left: 18px;
+}
+.details summary {
+  cursor: pointer;
+  margin-top: 16px;
+  color: var(--muted);
+}
+
+/* --- RF-10 · Ficha de solo lectura -------------------------------------- */
+.info-list {
+  margin: 0 0 16px;
+}
+.info-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.info-row dt {
+  color: var(--muted);
+}
+.info-row dd {
+  margin: 0;
+  white-space: pre-line;
+}
+@media (max-width: 700px) {
+  .info-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
 }

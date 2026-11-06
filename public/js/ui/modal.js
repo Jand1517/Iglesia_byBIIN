@@ -22,3 +22,11 @@ export function showModal(title, body, submit) {
   };
   $("#modal").showModal();
 }
+
+/** Muestra información de solo lectura (historiales, detalles). */
+export function showDetails(title, body) {
+  $("#modal-content").innerHTML =
+    `<h2>${esc(title)}</h2><div class="details">${body}</div><div class="actions"><button type="button" class="primary" id="close">Cerrar</button></div>`;
+  $("#close").onclick = () => $("#modal").close();
+  $("#modal").showModal();
+}
