@@ -8,7 +8,7 @@ Sistema web en español para administrar una iglesia: miembros, asistencia, even
 |---|---|
 | 📘 [Manual de usuario](docs/MANUAL_USUARIO.md) | Personal de la iglesia: cómo usar cada módulo paso a paso, qué puede hacer cada rol, reportes, respaldo y problemas comunes |
 | 🛠️ [Guía de desarrollo](docs/DESARROLLO.md) | Equipo técnico: arquitectura, base de datos, migraciones, seguridad, variables de entorno y pruebas |
-| 📋 [Requisitos funcionales](RF.MD) | RF-01 a RF-10 |
+
 
 ## Inicio rápido
 
