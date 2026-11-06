@@ -44,10 +44,11 @@ export function buildExcelWorkbook(ExcelJS, columns, rows, options = {}) {
     columns.forEach(([key], columnIndex) => {
       const cell = row.getCell(columnIndex + 1);
       const value = values[columnIndex] ?? "";
-      const date = ["date", "joined"].includes(key) && /^\d{4}-\d{2}-\d{2}$/.test(value);
+      const date = ["date", "joined", "lastAttended"].includes(key) && /^\d{4}-\d{2}-\d{2}$/.test(value);
       cell.value = date ? new Date(`${value}T00:00:00Z`) : value;
       if (date) cell.numFmt = "dd/mm/yyyy";
       else if (key === "amount") cell.numFmt = '"$"#,##0.00 "MXN"';
+      else if (key === "rate" && typeof value === "number") cell.numFmt = '0.0 "%"';
       else if (typeof value === "number") cell.numFmt = "#,##0";
       cell.font = { name: "Calibri", size: 11, color: { argb: ink } };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: index % 2 ? "FFF7F4F0" : "FFFFFFFF" } };

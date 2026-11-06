@@ -54,7 +54,7 @@ export function renderLayout() {
   });
 
   $("#app").innerHTML =
-    `<div class="layout"><aside class="sidebar"><div class="brand">${logo}<span>Comunidad<br><small style="font:11px Segoe UI;letter-spacing:2px">VIDA EN COMUNIDAD</small></span></div><nav class="nav">${navigation()}</nav><div class="profile"><div>${esc(me.name)}<br><small>${esc(me.role)}</small></div><button id="logout">Cerrar sesión ↗</button></div></aside><main class="main"><header class="topbar"><span>${esc(church.name)}</span><small>${date}</small></header><div class="heading"><div><p class="eyebrow">Tu comunidad, más cerca</p><h1>${PAGE_TITLES[page]}</h1><span class="muted">${subtitle}</span></div>${addButton}</div><section id="content"></section><footer class="muted" style="margin-top:30px;font-size:12px">COMUNIDAD &nbsp; / &nbsp; Unidos para servir.</footer></main></div>`;
+    `<div class="layout"><aside class="sidebar"><div class="brand">${logo}<span>Comunidad<br><small style="font:11px Segoe UI;letter-spacing:2px">VIDA EN COMUNIDAD</small></span></div><nav class="nav">${navigation()}</nav><div class="profile"><div>${esc(me.name)}<br><small>${esc(me.role)}</small></div><button id="logout">Cerrar sesión ↗</button></div></aside><main class="main"><header class="topbar"><span class="church-name">${esc(church.name)}</span><small>${date}</small></header><div class="heading"><div><p class="eyebrow">Tu comunidad, más cerca</p><h1>${PAGE_TITLES[page]}</h1><span class="muted">${subtitle}</span></div>${addButton}</div><section id="content"></section><footer class="muted" style="margin-top:30px;font-size:12px">COMUNIDAD &nbsp; / &nbsp; Unidos para servir.</footer></main></div>`;
 
   document.querySelectorAll("[data-page]").forEach(
     (button) =>

@@ -2,6 +2,7 @@
 import { state } from "./state.js";
 import { money } from "./utils.js";
 import { eventTypeLabel } from "./event-types.js";
+import { announcementStatus } from "./stats.js";
 
 /** Páginas del menú lateral, en orden. */
 export const PAGE_TITLES = {
@@ -32,7 +33,7 @@ export const COLUMNS = {
     ["date", "Fecha"],
     ["time", "Hora"],
     ["place", "Lugar"],
-    ["responsible", "Responsable"],
+    ["responsibles", "Responsables"],
     ["cancelled", "Estado"],
   ],
   ministries: [
@@ -51,6 +52,8 @@ export const COLUMNS = {
     ["title", "Título"],
     ["body", "Mensaje"],
     ["date", "Publicación"],
+    ["expires", "Vigente hasta"],
+    ["status", "Estado"],
     ["important", "Prioridad"],
   ],
   attendance: [
@@ -67,6 +70,12 @@ export const COLUMNS = {
   ],
 };
 
+export const ANNOUNCEMENT_STATUS = {
+  programado: "Programado",
+  vigente: "Publicado",
+  vencido: "Vencido",
+};
+
 export const memberName = (id) =>
   state.data.members.find((m) => m.id === id)?.name || "Sin asignar";
 
@@ -81,9 +90,13 @@ export function displayValue(row, key) {
   if (key === "cancelled") return row.cancelled ? "Cancelado" : "Programado";
   if (key === "amount") return money(row.amount);
   if (key === "member") return row.member ? memberName(row.member) : "Anónimo";
-  if (key === "coordinator" || key === "responsible") return memberName(row[key]);
+  if (key === "coordinator") return memberName(row[key]);
+  if (key === "responsibles")
+    return (row.responsibles || []).map(memberName).join(", ") || "Sin asignar";
   if (key === "members")
     return (row.members || []).map(memberName).join(", ") || "Sin integrantes";
+  if (key === "expires") return row.expires || "Sin vencimiento";
+  if (key === "status") return ANNOUNCEMENT_STATUS[announcementStatus(row)];
   if (key === "event") return eventName(row.event);
   if (key === "present") return row.present.length;
   if (key === "absent")

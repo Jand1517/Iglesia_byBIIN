@@ -23,6 +23,7 @@ const REQUIRED_FIELDS = {
 };
 
 const DONATION_METHODS = ["Efectivo", "Transferencia", "Tarjeta", "Otro"];
+const EVENT_TYPES = ["religioso", "administrativo"];
 const AMOUNT_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;
 const LOGO_PATTERN = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 const MAX_LOGO_LENGTH = 700000; // ≈ 500 KB en base64
@@ -53,6 +54,18 @@ function optionalEmail(value) {
   if (value && !EMAIL_PATTERN.test(value)) fail(400, "Correo inválido");
 }
 
+/**
+ * Teléfono opcional: 7 a 20 caracteres entre dígitos, espacios y + - ( ) .
+ * con al menos 7 dígitos. Rechaza valores como "9991081616SADASDASD".
+ */
+const PHONE_PATTERN = /^[0-9+()\-.\s]{7,20}$/;
+function optionalPhone(value) {
+  if (value === undefined || value === null || String(value).trim() === "") return;
+  const phone = String(value).trim();
+  if (!PHONE_PATTERN.test(phone) || phone.replace(/\D/g, "").length < 7)
+    fail(400, "Teléfono inválido: usa solo números, espacios y los signos + - ( ) .");
+}
+
 /** Si viene una referencia, debe existir. */
 function optionalReference(id, exists, message) {
   if (id && !exists(id)) fail(400, message);
@@ -69,18 +82,26 @@ const moduleRules = {
   members(body) {
     requireDate(body.joined, "fecha de ingreso");
     optionalEmail(body.email);
+    optionalPhone(body.phone);
   },
 
   events(body) {
-    if (body.type === undefined) {
-      // Compatibilidad con clientes anteriores. Los eventos antiguos requieren clasificación.
-      body.type = (body.id && eventsRepository.findById(body.id)?.type) || 'sin_clasificar';
-    }
-    if (!["religioso", "administrativo", "sin_clasificar"].includes(body.type))
-      fail(400, "Tipo de evento inválido");
+    // "sin_clasificar" existe solo para eventos anteriores a la migración 004:
+    // se conserva al editarlos, pero un evento nuevo debe tener tipo.
+    const currentType = eventsRepository.findById(body.id)?.type;
+    if (body.type === undefined) body.type = currentType; // clientes anteriores
+    const allowed =
+      currentType === "sin_clasificar" ? [...EVENT_TYPES, "sin_clasificar"] : EVENT_TYPES;
+    if (!allowed.includes(body.type))
+      fail(400, "Selecciona el tipo de evento: religioso o administrativo");
     requireDate(body.date, "fecha");
     if (!isTime(body.time)) fail(400, "La hora no es válida (usa HH:MM)");
-    optionalReference(body.responsible, membersRepository.exists, "Responsable inválido");
+
+    // RF-04: varios responsables. Se acepta `responsible` (uno) de clientes anteriores.
+    if (body.responsibles === undefined)
+      body.responsibles = body.responsible ? [body.responsible] : [];
+    memberList(body.responsibles, "Responsable inválido");
+    body.responsibles = [...new Set(body.responsibles)];
     optionalReference(body.ministry, ministriesRepository.exists, "Ministerio inválido");
   },
 
@@ -99,6 +120,11 @@ const moduleRules = {
 
   announcements(body) {
     requireDate(body.date, "fecha de publicación");
+    if (body.expires) {
+      requireDate(body.expires, "fecha de vencimiento");
+      if (body.expires < body.date)
+        fail(400, "La fecha de vencimiento no puede ser anterior a la de publicación");
+    }
     body.important = body.important === true;
   },
 
@@ -113,6 +139,7 @@ const moduleRules = {
 
   settings(body) {
     optionalEmail(body.email);
+    optionalPhone(body.phone);
     if (body.logo && (body.logo.length > MAX_LOGO_LENGTH || !LOGO_PATTERN.test(body.logo)))
       fail(400, "El logotipo debe ser PNG, JPEG o WebP de hasta 500 KB");
   },

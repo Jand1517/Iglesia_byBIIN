@@ -44,6 +44,8 @@ test("migra los datos antiguos sin perder información", () => {
     "002_relational_schema.sql",
     "003_migrate_legacy_records.sql",
     "004_user_status_event_type.sql",
+    "005_event_responsibles_announcement_expiry.sql",
+    "006_hashed_session_tokens.sql",
   ]);
 
   const all = (sql) => db.prepare(sql).all();
@@ -53,6 +55,10 @@ test("migra los datos antiguos sin perder información", () => {
   assert.equal(one("SELECT email FROM users").email, "admin@example.org");
   assert.equal(one("SELECT active FROM users").active, 1);
   assert.equal(one("SELECT type FROM events WHERE id='e1'").type, "sin_clasificar");
+  // 005: el responsable único pasa a la tabla de responsables.
+  assert.deepEqual(all("SELECT event_id, member_id FROM event_responsibles"), [
+    { event_id: "e1", member_id: "m2" },
+  ]);
 
   // Miembros: correo inválido → NULL; estado conservado.
   assert.deepEqual(all("SELECT id, email, active FROM members ORDER BY id"), [
